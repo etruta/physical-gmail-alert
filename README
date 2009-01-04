@@ -1,0 +1,6 @@
+Physical-gmail-alert is a python script that physically (with arduino) alert the arrival of gmails.
+	
+This script uses imaplib to access your Google account, your credentials should be stored in credentials.txt with a username in the first line and password in the second line.
+
+Requirements
+    * python-firmata @ http://github.com/etruta/python-firmata/tree/master
