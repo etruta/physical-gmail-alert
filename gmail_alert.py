@@ -18,11 +18,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__version__ = "0.1"
+__version__ = "0.3"
 
 import time
 import imaplib
-import firmata
+import serial
 
 debug = True
 
@@ -37,15 +37,22 @@ class GmailAlert:
         self.ammount_blink = 3
         self.time_refresh  = 10
         
-        if debug: print "# Connecting in arduino..."
-        self.arduino = firmata.Arduino('/dev/tty.usbserial-A4001JwZ')
-        self.arduino.pin_mode(12, firmata.OUTPUT)        
+        self.serial_port = '/dev/tty.usbserial-A6007WIV'
         
-        if debug: print "# Connecting in imap gmail server..."
-        self.server = imaplib.IMAP4_SSL('imap.gmail.com')
-        self.ammount = 0
-        self.connect()
+        if debug: print "# Connecting in XBee/Arduino with serial..."
+        try:
+            self.serial = serial.Serial(self.serial_port, 9600)
+        except:
+            if debug: print "# ERROR: Connecting in XBee/Arduino with serial..."
         
+        try:
+            if debug: print "# Connecting in imap gmail server..."
+            self.server = imaplib.IMAP4_SSL('imap.gmail.com')
+            self.ammount = 0
+            self.connect()
+        except:
+            if debug: print "# ERROR: Connecting in imap gmail server..."
+            
     def connect(self):
         
         if debug: print "# Reading file credentials..."
@@ -67,11 +74,12 @@ class GmailAlert:
         select = self.server.select()
         if select[0] == 'OK':
             
-            if self.ammount != select[1][0]:
-                self.ammount = select[1][0]
+            if self.ammount < select[1][0]:
                 for i in range(self.ammount_blink):
                     self.blink()
-                
+            
+            self.ammount = select[1][0]
+            
             time.sleep(self.time_refresh)
             self.verify()
             
@@ -80,15 +88,16 @@ class GmailAlert:
            self.connect()
     
     def blink(self):
-        if debug: print "BLINK: " + str(self.ammount)
-        self.arduino.digital_write(12, firmata.HIGH)
+	
+        if debug: print "BLINK!"
+        self.serial.write('H')
         time.sleep(2)
-        self.arduino.digital_write(12, firmata.LOW)
-        time.sleep(1)
-        
+			
+	
     def __destroy__(self):
-        self.server.close();
-        self.server.logout();
+        self.serial.close()
+        self.server.close()
+        self.server.logout()
 
 if __name__ == "__main__":
     s = GmailAlert()
